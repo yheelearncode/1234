@@ -23,23 +23,3 @@
 
 ---
 
-## 🛠 시스템 구성
-
-```mermaid
-graph TD
-    user-web[User_Web]
-    ec2-server[EC2_Node.js_Server]
-    mysql-db[MySQL_Database]
-    rpi[Raspberry_Pi_(Python)]
-    lcd[LCD_Display]
-    motion[Motion_Sensor]
-    speaker[Speaker]
-
-    user-web -->|POST /memo| ec2-server
-    ec2-server -->|Save to DB| mysql-db
-    rpi -->|GET /memo| ec2-server
-    rpi -->|Display memo| lcd
-    rpi -->|Play alarm| speaker
-    motion -->|Trigger signal| rpi
-```
-
