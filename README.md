@@ -26,16 +26,20 @@
 ## 🛠 시스템 구성
 
 ```mermaid
-graph TD;
-  User[User Web Input]
-  EC2[EC2 Node.js Server]
-  DB[(MySQL Database)]
-  Pi[Raspberry Pi (Python)]
-  LCD[LCD Display]
-  Sensor[Motion Sensor]
+graph TD
+    user-web[User_Web]
+    ec2-server[EC2_Node.js_Server]
+    mysql-db[MySQL_Database]
+    rpi[Raspberry_Pi_(Python)]
+    lcd[LCD_Display]
+    motion[Motion_Sensor]
+    speaker[Speaker]
 
-  User -->|POST /memo| EC2
-  EC2 -->|store/retrieve| DB
-  Pi -->|GET /memo| EC2
-  Pi --> LCD
-  Pi --> Sensor
+    user-web -->|POST /memo| ec2-server
+    ec2-server -->|Save to DB| mysql-db
+    rpi -->|GET /memo| ec2-server
+    rpi -->|Display memo| lcd
+    rpi -->|Play alarm| speaker
+    motion -->|Trigger signal| rpi
+```
+
