@@ -27,9 +27,15 @@
 
 ```mermaid
 graph TD;
-  사용자가_웹에서_메모등록 --> EC2[EC2 (Node.js 서버)]
-  EC2 --> MySQL[(MySQL DB)]
-  RaspberryPi -->|HTTP GET /memo| EC2
-  RaspberryPi --> LCD[LCD 디스플레이]
-  RaspberryPi --> 스피커
-  RaspberryPi -->|센서 입력| 기지개_모션센서
+  User[User Web Input]
+  EC2[EC2 Node.js Server]
+  DB[(MySQL Database)]
+  Pi[Raspberry Pi (Python)]
+  LCD[LCD Display]
+  Sensor[Motion Sensor]
+
+  User -->|POST /memo| EC2
+  EC2 -->|store/retrieve| DB
+  Pi -->|GET /memo| EC2
+  Pi --> LCD
+  Pi --> Sensor
