@@ -1,7 +1,7 @@
 from PyQt6.QtWidgets import QWidget, QLabel, QVBoxLayout, QHBoxLayout
 from PyQt6.QtCore import QTimer, Qt
 import datetime
-from Services.memo_loader import get_regular_memo, get_date_memos
+from Services.memo_loader import get_regular_memo, get_date_memo, get_date_memos
 from Services.weather_api import get_weather
 from Services.alarm_manager import get_regular_alarms, get_temporary_alarm
 
@@ -54,10 +54,12 @@ class ClockScreen(QWidget):
 
         self.memo_regular_label = QLabel("")
         self.memo_regular_label.setStyleSheet("font-size: 18px; color: white;")
+        self.memo_regular_label.setWordWrap(True)
         memo_layout.addWidget(self.memo_regular_label)
 
-        self.date_memo_label = QLabel("")  # [중요] 누락되었던 부분 추가
+        self.date_memo_label = QLabel("")
         self.date_memo_label.setStyleSheet("font-size: 18px; color: white; border-top: 1px solid #555; padding-top: 5px;")
+        self.date_memo_label.setWordWrap(True)
         memo_layout.addWidget(self.date_memo_label)
 
         self.layout.addWidget(self.memo_box)
@@ -76,10 +78,12 @@ class ClockScreen(QWidget):
 
         self.alarm_regular_label = QLabel("")
         self.alarm_regular_label.setStyleSheet("font-size: 18px; color: white;")
+        self.alarm_regular_label.setWordWrap(True)
         alarm_layout.addWidget(self.alarm_regular_label)
 
         self.alarm_temp_label = QLabel("")
         self.alarm_temp_label.setStyleSheet("font-size: 18px; color: white; border-top: 1px solid #555; padding-top: 5px;")
+        self.alarm_temp_label.setWordWrap(True)
         alarm_layout.addWidget(self.alarm_temp_label)
 
         self.layout.addWidget(self.alarm_box)
@@ -101,17 +105,31 @@ class ClockScreen(QWidget):
         self.dust_label.setText(f"🌫 미세먼지: {weather['dust']}")
 
         # 정기 메모
-        self.memo_regular_label.setText(f"✓ 정기 메모: {get_regular_memo()}")
+        regular_memo = get_regular_memo()
+        if regular_memo:
+            self.memo_regular_label.setText(f"✓ 정기 메모: {regular_memo}")
+        else:
+            self.memo_regular_label.setText("✓ 정기 메모: 없음")
 
-        # 날짜 메모 (오늘만)
+        # 날짜 메모
         today = now.strftime("%Y-%m-%d")
         date_memos = get_date_memos()
         if today in date_memos:
-            self.date_memo_label.setText(f"🗓 날짜 메모: {date_memos[today]}")
+            self.date_memo_label.setText(f"🗓 오늘의 메모: {date_memos[today]}")
         else:
-            self.date_memo_label.setText("🗓 날짜 메모: 없음")
+            next_memo = None
+            next_date = None
+            for date in sorted(date_memos.keys()):
+                if date > today:
+                    next_memo = date_memos[date]
+                    next_date = date
+                    break
+            if next_memo:
+                self.date_memo_label.setText(f"🗓 다음 메모 ({next_date}): {next_memo}")
+            else:
+                self.date_memo_label.setText("🗓 예정된 메모 없음")
 
-        # 정기 알람 (리스트)
+        # 정기 알람
         alarms = get_regular_alarms()
         if alarms:
             alarm_texts = [f"{time} ({label})" for time, label in alarms]
