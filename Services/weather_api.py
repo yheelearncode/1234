@@ -1,3 +1,7 @@
-def get_weather_info():
-    # 테스트용 임시
-    return "맑음 22℃", "45㎍/㎥ 좋음"
+def get_weather():
+    # 임시 Mock 데이터
+    return {
+        "weather": "맑음",
+        "temperature": "22°C",
+        "dust": "좋음"
+    }

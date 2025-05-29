@@ -1,9 +1,12 @@
-from datetime import datetime
+def get_regular_memo():
+    return "우산 챙기기"
 
-def load_today_memo():
-    try:
-        today = datetime.now().strftime("%Y-%m-%d")
-        with open(f"memos/{today}.txt", "r", encoding="utf-8") as f:
-            return f.read()
-    except:
-        return "오늘의 메모가 없습니다"
+def get_date_memo():
+    return "회의자료 출력"
+
+def get_date_memos():
+    return {
+        "2025-05-29": "회의자료 출력",
+        "2025-06-01": "장보기",
+        "2025-06-02": "약속"
+    }
