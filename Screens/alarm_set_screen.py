@@ -1,12 +1,21 @@
 from PyQt6.QtWidgets import QWidget, QLabel, QVBoxLayout
 from PyQt6.QtCore import Qt
+import requests
+import datetime
+
+API_BASE_URL = "http://127.0.0.1:5000"
+
+def get_today_and_next_dates():
+    now = datetime.datetime.now()
+    today = now.date()
+    next_day = today + datetime.timedelta(days=1)
+    return today, next_day
 
 class AlarmSetScreen(QWidget):
     def __init__(self, controller):
         super().__init__()
         self.controller = controller
         self.setStyleSheet("background-color: black; color: white;")
-
         self.selected_index = 0
         self.edit_mode = False
 
@@ -15,25 +24,21 @@ class AlarmSetScreen(QWidget):
         layout.setSpacing(20)
         self.setLayout(layout)
 
-        # 알람 활성화 박스 (얇게)
         self.active_label = QLabel("🔘 알람 활성화: OFF")
         self.active_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.active_label.setStyleSheet(self.active_box_style())
         layout.addWidget(self.active_label)
 
-        # 공백 추가 (얇게 보이도록)
         self.empty_label = QLabel("")
-        self.empty_label.setFixedHeight(60)  # 공백 충분히 확보
+        self.empty_label.setFixedHeight(60)
         layout.addWidget(self.empty_label)
 
-        # 시
         self.hour = 7
         self.hour_label = QLabel(f"{self.hour:02d} 시")
         self.hour_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.hour_label.setStyleSheet(self.time_box_style())
         layout.addWidget(self.hour_label)
 
-        # 분
         self.minute = 30
         self.minute_label = QLabel(f"{self.minute:02d} 분")
         self.minute_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -67,9 +72,8 @@ class AlarmSetScreen(QWidget):
         for i, label in enumerate(labels):
             if i == self.selected_index:
                 style = self.time_box_style() if i != 0 else self.active_box_style()
-                style += "border: 2px solid #0f0;"  # 선택 강조
+                style += "border: 2px solid #0f0;"
                 label.setStyleSheet(style)
-
                 if i == 1 and self.edit_mode:
                     label.setText(f"▲\n{self.hour:02d} 시\n▼")
                 elif i == 2 and self.edit_mode:
@@ -110,11 +114,39 @@ class AlarmSetScreen(QWidget):
 
         elif key in (Qt.Key.Key_Space, Qt.Key.Key_Return):
             if self.selected_index == 0:
-                current_text = self.active_label.text()
-                if "OFF" in current_text:
-                    self.active_label.setText("🔘 알람 활성화: ON")
-                else:
-                    self.active_label.setText("🔘 알람 활성화: OFF")
+                self.handle_alarm_toggle()
             elif self.selected_index in [1, 2]:
                 self.edit_mode = not self.edit_mode
-            self.update_highlight()
+                self.update_highlight()
+
+    def handle_alarm_toggle(self):
+        current_text = self.active_label.text()
+        today, next_day = get_today_and_next_dates()
+        alarm_time = f"{self.hour:02d}:{self.minute:02d}"
+
+        if "OFF" in current_text:
+            self.active_label.setText("🔘 알람 활성화: ON")
+            try:
+                requests.post(
+                    f"{API_BASE_URL}/api/alarms/temp",
+                    json={
+                        "time": alarm_time,
+                        "date": today.strftime("%Y-%m-%d")
+                    }
+                )
+            except Exception as e:
+                print(f"[알람 등록 실패] {e}")
+        else:
+            self.active_label.setText("🔘 알람 활성화: OFF")
+            for target_date in [today, next_day]:
+                try:
+                    requests.delete(
+                        f"{API_BASE_URL}/api/alarms/temp",
+                        json={
+                            "time": alarm_time,
+                            "date": target_date.strftime("%Y-%m-%d")
+                        }
+                    )
+                except Exception as e:
+                    print(f"[알람 삭제 실패: {target_date}] {e}")
+        self.update_highlight()

@@ -5,7 +5,8 @@ from Screens.clock_screen import ClockScreen
 from Screens.alarm_set_screen import AlarmSetScreen
 from Screens.alarm_ring_screen import AlarmRingScreen
 from Screens.memo_check_screen import MemoCheckScreen
-
+from Services.memo_loader import get_regular_memo
+import requests
 
 class SmartAlarmApp(QStackedWidget):
     def __init__(self):
@@ -55,6 +56,7 @@ class SmartAlarmApp(QStackedWidget):
 
 
 if __name__ == "__main__":
+    print(requests.get("http://127.0.0.1:5000/api/weather").json())
     app = QApplication(sys.argv)
     window = SmartAlarmApp()
     window.show()

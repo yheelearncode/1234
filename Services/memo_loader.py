@@ -1,64 +1,45 @@
+import requests
 from datetime import datetime
-import sqlite3
-import os
 
-DB_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'instance', 'alarms.db')
-
-def get_db_connection():
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    return conn
+API_BASE_URL = "http://127.0.0.1:5000"
 
 def get_regular_memo():
-    conn = get_db_connection()
     try:
-        cursor = conn.cursor()
-        # 날짜가 지정되지 않은 가장 최근 메모 가져오기
-        query = """
-        SELECT content FROM memo 
-        WHERE date IS NULL 
-        ORDER BY created_at DESC 
-        LIMIT 1
-        """
-        cursor.execute(query)
-        result = cursor.fetchone()
-        return result['content'] if result else ""
-    finally:
-        conn.close()
+        response = requests.get(f"{API_BASE_URL}/api/memos")
+        response.raise_for_status()
+        memos = response.json()
+        regular_memos = [m for m in memos if not m['date']]
+        sorted_memos = sorted(regular_memos, key=lambda x: x['created_at'])
+        return sorted_memos[-1]['content'] if sorted_memos else ""
+    except Exception as e:
+        print(f"오류 발생: {e}")
+        return ""
 
 def get_date_memo():
-    conn = get_db_connection()
+    today = datetime.now().strftime('%Y-%m-%d')
     try:
-        cursor = conn.cursor()
-        # 오늘 날짜의 메모 가져오기
-        today = datetime.now().strftime('%Y-%m-%d')
-        query = """
-        SELECT content FROM memo 
-        WHERE date = ? 
-        ORDER BY created_at DESC 
-        LIMIT 1
-        """
-        cursor.execute(query, (today,))
-        result = cursor.fetchone()
-        return result['content'] if result else ""
-    finally:
-        conn.close()
+        response = requests.get(f"{API_BASE_URL}/api/memos")
+        response.raise_for_status()
+        memos = response.json()
+        for m in sorted(memos, key=lambda x: x['created_at'], reverse=True):
+            if m['date'] == today:
+                return m['content']
+        return ""
+    except:
+        return ""
 
 def get_date_memos():
-    conn = get_db_connection()
+    today = datetime.now().strftime('%Y-%m-%d')
     try:
-        cursor = conn.cursor()
-        # 오늘 이후의 날짜별 메모 목록 가져오기
-        today = datetime.now().strftime('%Y-%m-%d')
-        query = """
-        SELECT date, GROUP_CONCAT(content, ' | ') as contents
-        FROM memo 
-        WHERE date >= ? 
-        GROUP BY date
-        ORDER BY date
-        """
-        cursor.execute(query, (today,))
-        memos = cursor.fetchall()
-        return {memo['date']: memo['contents'] for memo in memos}
-    finally:
-        conn.close()
+        response = requests.get(f"{API_BASE_URL}/api/memos")
+        response.raise_for_status()
+        memos = response.json()
+        future_memos = [m for m in memos if m['date'] and m['date'] >= today]
+        result = {}
+        for m in future_memos:
+            if m['date'] not in result:
+                result[m['date']] = []
+            result[m['date']].append(m['content'])
+        return {k: ' | '.join(v) for k, v in result.items()}
+    except:
+        return {}
