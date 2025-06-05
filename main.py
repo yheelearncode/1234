@@ -1,63 +1,69 @@
-import sys
-from PyQt6.QtWidgets import QApplication, QStackedWidget
-from PyQt6.QtCore import Qt
+import tkinter as tk
+import requests
+
 from Screens.clock_screen import ClockScreen
 from Screens.alarm_set_screen import AlarmSetScreen
 from Screens.alarm_ring_screen import AlarmRingScreen
 from Screens.memo_check_screen import MemoCheckScreen
-from Services.memo_loader import get_regular_memo
-import requests
 
-class SmartAlarmApp(QStackedWidget):
+class SmartAlarmApp(tk.Tk):
     def __init__(self):
         super().__init__()
 
-        self.setWindowTitle("Smart Alarm IoT")
-        self.setFixedSize(700, 500)
-        self.setStyleSheet("background-color: black;")
+        self.title("Smart Alarm IoT")
+        self.geometry("700x500")
+        self.configure(bg="black")
 
-        # 화면 등록
-        self.clock_screen = ClockScreen(self)
-        self.alarm_set_screen = AlarmSetScreen(self)
-        self.memo_check_screen = MemoCheckScreen(self)
-        self.alarm_ring_screen = AlarmRingScreen(self)
+        # 전체 프레임 컨테이너
+        self.container = tk.Frame(self, bg="black")
+        self.container.pack(fill="both", expand=True)
 
-        self.screens = [self.clock_screen, self.alarm_set_screen, self.memo_check_screen]
+        # 화면 초기화
+        self.clock_screen = ClockScreen(self.container, self)
+        self.alarm_set_screen = AlarmSetScreen(self.container, self)
+        self.memo_check_screen = MemoCheckScreen(self.container, self)
+        self.alarm_ring_screen = AlarmRingScreen(self.container, self)
+
+        self.screens = [
+            self.clock_screen,
+            self.alarm_set_screen,
+            self.memo_check_screen
+        ]
         self.current_index = 0
 
-        for screen in self.screens:
-            self.addWidget(screen)
+        for screen in self.screens + [self.alarm_ring_screen]:
+            screen.grid(row=0, column=0, sticky="nsew")
 
-        self.addWidget(self.alarm_ring_screen)
-        self.setCurrentWidget(self.screens[0])
+        self.show_screen(self.screens[0])
 
-    def keyPressEvent(self, event):
-        key = event.key()
-        if key == Qt.Key.Key_Left:
+        self.bind_all("<Key>", self.key_pressed)
+
+    def show_screen(self, screen):
+        screen.tkraise()
+
+    def key_pressed(self, event):
+        if event.keysym == "Left":
             self.current_index = (self.current_index - 1) % len(self.screens)
-            self.setCurrentWidget(self.screens[self.current_index])
+            self.show_screen(self.screens[self.current_index])
             print(f"이전 화면으로 이동: {self.current_index}")
-        elif key == Qt.Key.Key_Right:
+        elif event.keysym == "Right":
             self.current_index = (self.current_index + 1) % len(self.screens)
-            self.setCurrentWidget(self.screens[self.current_index])
+            self.show_screen(self.screens[self.current_index])
             print(f"다음 화면으로 이동: {self.current_index}")
-        elif key == Qt.Key.Key_Tab:
-            if self.currentWidget() == self.clock_screen:
-                self.setCurrentWidget(self.alarm_ring_screen)
+        elif event.keysym == "Tab":
+            if self.screens[self.current_index] == self.clock_screen:
+                self.show_screen(self.alarm_ring_screen)
                 print("알람 울림 화면으로 이동")
             else:
-                self.setCurrentWidget(self.clock_screen)
+                self.show_screen(self.clock_screen)
                 print("시계 화면으로 이동")
         else:
-            # 나머지 키는 현재 화면에 전달
-            current_screen = self.currentWidget()
-            if hasattr(current_screen, "keyPressEvent"):
-                current_screen.keyPressEvent(event)
-
+            # 현재 화면에 키 이벤트 위임
+            current_screen = self.screens[self.current_index]
+            if hasattr(current_screen, "key_pressed"):
+                current_screen.key_pressed(event)
 
 if __name__ == "__main__":
     print(requests.get("http://127.0.0.1:5000/api/weather").json())
-    app = QApplication(sys.argv)
-    window = SmartAlarmApp()
-    window.show()
-    sys.exit(app.exec())
+    app = SmartAlarmApp()
+    app.mainloop()
