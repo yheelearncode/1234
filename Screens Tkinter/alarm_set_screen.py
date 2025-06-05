@@ -1,4 +1,4 @@
-# Tkinter handles widgets directly import tk.Frame, tk.Label, # tk.Frame used; use pack/grid for layout
+# Tkinter handles widgets directly import tk.Frame, tk.Label, # layout replaced with tk.Frame and pack
 # Tkinter handles events differently
 import requests
 import datetime
@@ -19,10 +19,10 @@ class AlarmSetScreen(tk.Frame):
         self.selected_index = 0
         self.edit_mode = False
 
-        layout = # tk.Frame used; use pack/grid for layout()
+        layout = # layout replaced with tk.Frame and pack()
         layout.setContentsMargins(20, 20, 20, 20)
         layout.setSpacing(20)
-        # Layout management handled via pack/grid(layout)
+        # Layout managed via pack/grid(layout)
 
         self.active_label = tk.Label("🔘 알람 활성화: OFF")
         self.active_label.setAlignment(Qt.AlignmentFlag.AlignCenter)

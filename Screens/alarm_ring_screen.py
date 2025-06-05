@@ -1,4 +1,4 @@
-# Tkinter handles widgets directly import tk.Frame, tk.Label, # tk.Frame used; use pack/grid for layout
+# Tkinter handles widgets directly import tk.Frame, tk.Label, # layout replaced with tk.Frame and pack
 # Tkinter handles events differently, QTimer, QUrl, pyqtSignal
 from PyQt6.QtMultimedia import QSoundEffect
 import datetime
@@ -58,10 +58,10 @@ class AlarmRingScreen(tk.Frame):
         super().__init__()
         self.controller = controller
         # self.config(bg=...)("background-color: black; color: white;")
-        layout = # tk.Frame used; use pack/grid for layout()
+        layout = # layout replaced with tk.Frame and pack()
         layout.setContentsMargins(20, 20, 20, 20)
         layout.setSpacing(30)
-        # Layout management handled via pack/grid(layout)
+        # Layout managed via pack/grid(layout)
 
         self.icon_label = tk.Label("🔔")
         self.icon_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -80,7 +80,7 @@ class AlarmRingScreen(tk.Frame):
             border-radius: 10px;
             padding: 10px;
         """)
-        memo_layout = # tk.Frame used; use pack/grid for layout()
+        memo_layout = # layout replaced with tk.Frame and pack()
         memo_layout.setSpacing(5)
         self.memo_box.setLayout(memo_layout)
 

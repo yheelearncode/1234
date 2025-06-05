@@ -1,4 +1,4 @@
-# Tkinter handles widgets directly import tk.Frame, tk.Label, # tk.Frame used; use pack/grid for layout, # tk.Frame used; use pack/grid for layout
+# Tkinter handles widgets directly import tk.Frame, tk.Label, # layout replaced with tk.Frame and pack, # layout replaced with tk.Frame and pack
 from PyQt6.QtCore import QTimer, Qt, pyqtSignal
 import datetime
 import threading
@@ -13,10 +13,9 @@ class ClockScreen(tk.Frame):
         super().__init__()
         self.controller = controller
         # self.config(bg=...)("background-color: black; color: white;")
-        self.layout = # tk.Frame used; use pack/grid for layout()
-        self.layout.setContentsMargins(20, 20, 20, 20)
-        self.layout.setSpacing(15)
-        # Layout management handled via pack/grid(self.layout)
+        self.layout = tk.Frame(self, padx=20, pady=20, bg='black')
+        self.layout.pack(fill='both', expand=True)
+        # Layout managed via pack/grid(self.layout)
 
         # 날짜/시간
         self.date_label = tk.Label("")
@@ -30,7 +29,7 @@ class ClockScreen(tk.Frame):
         self.layout.pack()  # was addWidgetself.time_label)
 
         # 날씨/미세먼지
-        weather_dust_layout = # tk.Frame used; use pack/grid for layout()
+        weather_dust_layout = # layout replaced with tk.Frame and pack()
         self.weather_label = tk.Label("")
         self.weather_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.weather_label.setStyleSheet("font-size: 18px; color: white;")
@@ -51,7 +50,7 @@ class ClockScreen(tk.Frame):
             border-radius: 10px;
             padding: 10px;
         """)
-        memo_layout = # tk.Frame used; use pack/grid for layout()
+        memo_layout = # layout replaced with tk.Frame and pack()
         memo_layout.setSpacing(5)
         self.memo_box.setLayout(memo_layout)
 
@@ -75,7 +74,7 @@ class ClockScreen(tk.Frame):
             border-radius: 10px;
             padding: 10px;
         """)
-        alarm_layout = # tk.Frame used; use pack/grid for layout()
+        alarm_layout = # layout replaced with tk.Frame and pack()
         alarm_layout.setSpacing(5)
         self.alarm_box.setLayout(alarm_layout)
 

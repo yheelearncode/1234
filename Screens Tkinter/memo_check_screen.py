@@ -1,4 +1,4 @@
-# Tkinter handles widgets directly import tk.Frame, tk.Label, # tk.Frame used; use pack/grid for layout, QScrollArea, QSizePolicy
+# Tkinter handles widgets directly import tk.Frame, tk.Label, # layout replaced with tk.Frame and pack, QScrollArea, QSizePolicy
 # Tkinter handles events differently, QTimer, pyqtSignal
 import threading
 from Services.memo_loader import get_regular_memo, get_date_memos
@@ -13,10 +13,10 @@ class MemoCheckScreen(tk.Frame):
         self.controller = controller
         # self.config(bg=...)("background-color: black; color: white;")
 
-        main_layout = # tk.Frame used; use pack/grid for layout()
+        main_layout = # layout replaced with tk.Frame and pack()
         main_layout.setContentsMargins(20, 20, 20, 20)
         main_layout.setSpacing(15)
-        # Layout management handled via pack/grid(main_layout)
+        # Layout managed via pack/grid(main_layout)
 
         title = tk.Label("📝 메모 확인")
         title.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -49,7 +49,7 @@ class MemoCheckScreen(tk.Frame):
         """)
         
         content_widget = tk.Frame()
-        self.content_layout = # tk.Frame used; use pack/grid for layout(content_widget)
+        self.content_layout = # layout replaced with tk.Frame and pack(content_widget)
         self.content_layout.setSpacing(15)
         scroll.setWidget(content_widget)
         main_layout.pack()  # was addWidgetscroll)
@@ -89,7 +89,7 @@ class MemoCheckScreen(tk.Frame):
             border-radius: 10px;
             padding: 10px;
         """)
-        layout = # tk.Frame used; use pack/grid for layout()
+        layout = # layout replaced with tk.Frame and pack()
         layout.setSpacing(5)
         box.setLayout(layout)
 
