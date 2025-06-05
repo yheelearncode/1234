@@ -7,7 +7,6 @@ from Services.weather_api import get_weather
 from Services.alarm_manager import get_regular_alarms, get_temporary_alarm
 
 class ClockScreen(QWidget):
-    # 신호: 데이터 업데이트 시 UI 갱신
     data_updated = pyqtSignal()
 
     def __init__(self, controller):
@@ -100,17 +99,23 @@ class ClockScreen(QWidget):
         # 신호 연결
         self.data_updated.connect(self.update_info)
 
-        # 1초마다 시계만 update
+        # 시계 타이머 (1초)
         self.timer = QTimer()
         self.timer.timeout.connect(self.update_time_only)
         self.timer.start(1000)
         self.update_time_only()
 
-        # 날씨/메모/알람은 별도 타이머(60초마다) + 스레드에서 fetch
+        # 데이터 전체 타이머 (60초)
         self.data_timer = QTimer()
         self.data_timer.timeout.connect(self.fetch_all_async)
         self.data_timer.start(60000)
         self.fetch_all_async()  # 최초 1회
+
+        # 임시 알람만 10초 주기로 갱신
+        self.temp_alarm_timer = QTimer()
+        self.temp_alarm_timer.timeout.connect(self.fetch_temp_alarm_only)
+        self.temp_alarm_timer.start(10000)
+        self.fetch_temp_alarm_only()
 
     def update_time_only(self):
         now = datetime.datetime.now()
@@ -118,7 +123,6 @@ class ClockScreen(QWidget):
         self.time_label.setText(now.strftime("%H:%M:%S"))
 
     def fetch_all_async(self):
-        # 데이터 fetch, UI는 신호로만 갱신
         def run():
             weather = get_weather()
             regular_memo = get_regular_memo()
@@ -137,20 +141,24 @@ class ClockScreen(QWidget):
             self.data_updated.emit()
         threading.Thread(target=run).start()
 
+    def fetch_temp_alarm_only(self):
+        def run():
+            temp_alarm = get_temporary_alarm()
+            self.alarm_cache["temp"] = temp_alarm
+            self.data_updated.emit()
+        threading.Thread(target=run).start()
+
     def update_info(self):
-        # 날씨
         w = self.weather_cache
         self.weather_label.setText(f"☁ 날씨: {w['weather']} {w['temperature']}")
         self.dust_label.setText(f"🌫 미세먼지: {w['dust']}")
 
-        # 정기 메모
         regular_memo = self.memo_cache["regular"]
         if regular_memo:
             self.memo_regular_label.setText(f"✓ 정기 메모: {regular_memo}")
         else:
             self.memo_regular_label.setText("✓ 정기 메모: 없음")
 
-        # 날짜 메모
         now = datetime.datetime.now()
         today = now.strftime("%Y-%m-%d")
         date_memos = self.memo_cache["date_memos"]
@@ -169,7 +177,6 @@ class ClockScreen(QWidget):
             else:
                 self.date_memo_label.setText("🗓 예정된 메모 없음")
 
-        # 정기 알람
         alarms = self.alarm_cache["regular"]
         if alarms:
             alarm_texts = [f"{time} ({label})" for time, label in alarms]
@@ -177,7 +184,6 @@ class ClockScreen(QWidget):
         else:
             self.alarm_regular_label.setText("🔔 정기 알람 없음")
 
-        # 임시 알람
         temp_alarm = self.alarm_cache["temp"]
         if temp_alarm:
             self.alarm_temp_label.setText(f"⏰ 임시 알람: {temp_alarm}")
