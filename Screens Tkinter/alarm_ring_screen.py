@@ -1,17 +1,16 @@
-# Tkinter handles widgets directly import tk.Frame, tk.Label, # layout replaced with tk.Frame and pack
-# Tkinter handles events differently, QTimer, QUrl, pyqtSignal
-from PyQt6.QtMultimedia import QSoundEffect
+import tkinter as tk
+from tkinter import ttk
 import datetime
 import os
 import threading
+import time
+import pygame
+import cv2
+import mediapipe as mp
 
 from Services.memo_loader import get_regular_memo, get_date_memo
 
 def monitor_stretch_motion():
-    import cv2
-    import mediapipe as mp
-    import time
-
     mp_pose = mp.solutions.pose
     cap = cv2.VideoCapture(0)
 
@@ -51,95 +50,100 @@ def monitor_stretch_motion():
     cap.release()
     return False
 
-class AlarmRingScreen(tk.Frame):
-    memo_updated = pyqtSignal()
-
-    def __init__(self, controller):
-        super().__init__()
+class AlarmRingScreen:
+    def __init__(self, parent, controller):
+        self.parent = parent
         self.controller = controller
-        # self.config(bg=...)("background-color: black; color: white;")
-        layout = # layout replaced with tk.Frame and pack()
-        layout.setContentsMargins(20, 20, 20, 20)
-        layout.setSpacing(30)
-        # Layout managed via pack/grid(layout)
-
-        self.icon_label = tk.Label("🔔")
-        self.icon_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.icon_label.setStyleSheet("font-size: 200px;")
-        layout.pack()  # was addWidgetself.icon_label)
-
-        self.time_label = tk.Label("")
-        self.time_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.time_label.setStyleSheet("font-size: 60px;")
-        layout.pack()  # was addWidgetself.time_label)
-
-        self.memo_box = tk.Frame()
-        self.memo_box.setStyleSheet("""
-            background-color: #222;
-            border: 1px solid #555;
-            border-radius: 10px;
-            padding: 10px;
-        """)
-        memo_layout = # layout replaced with tk.Frame and pack()
-        memo_layout.setSpacing(5)
-        self.memo_box.setLayout(memo_layout)
-
-        self.memo_regular_label = tk.Label("")
-        self.memo_regular_label.setStyleSheet("font-size: 18px; color: white;")
-        memo_layout.pack()  # was addWidgetself.memo_regular_label)
-
-        self.date_memo_label = tk.Label("")
-        self.date_memo_label.setStyleSheet("font-size: 18px; color: white; border-top: 1px solid #555; padding-top: 5px;")
-        memo_layout.pack()  # was addWidgetself.date_memo_label)
-
-        layout.pack()  # was addWidgetself.memo_box)
-
+        self.root = None
+        self.sound_channel = None
         self.memo_cache = {"regular": "", "date": ""}
+        
+        # pygame 초기화 (사운드용)
+        try:
+            pygame.mixer.init()
+        except pygame.error as e:
+            print(f"pygame 초기화 실패: {e}")
 
-        self.timer = QTimer()
-        self.timer.timeout.connect(self.update_time)
-        self.timer.start(1000)
+    def create_frame(self, root):
+        self.root = root
+        frame = tk.Frame(root, bg='black')
+        frame.pack(fill='both', expand=True)
+
+        # 메인 컨테이너
+        main_container = tk.Frame(frame, bg='black')
+        main_container.pack(fill='both', expand=True, padx=20, pady=20)
+
+        # 알람 아이콘
+        self.icon_label = tk.Label(main_container, text="🔔", bg='black', fg='white', font=('Arial', 120))
+        self.icon_label.pack(pady=(0, 30))
+
+        # 시간 표시
+        self.time_label = tk.Label(main_container, text="", bg='black', fg='white', font=('Arial', 40, 'bold'))
+        self.time_label.pack(pady=(0, 30))
+
+        # 메모 박스
+        memo_frame = tk.Frame(main_container, bg='#222222', relief='solid', bd=1)
+        memo_frame.pack(fill='x', pady=(0, 20))
+
+        # 정기 메모
+        self.memo_regular_label = tk.Label(memo_frame, text="", bg='#222222', fg='white', font=('Arial', 12),wraplength=600, justify='left')
+        self.memo_regular_label.pack(anchor='w', padx=10, pady=5)
+
+        # 구분선
+        separator = tk.Frame(memo_frame, height=1, bg='#555555')
+        separator.pack(fill='x', padx=10, pady=5)
+
+        # 날짜 메모
+        self.date_memo_label = tk.Label(memo_frame, text="", bg='#222222', fg='white', font=('Arial', 12), wraplength=600, justify='left')
+        self.date_memo_label.pack(anchor='w', padx=10, pady=5)
+
+        # 키보드 포커스 설정
+        frame.bind('<Key>', self.on_key_press)
+        frame.focus_set()
+
         self.update_time()
-
-        self.memo_timer = QTimer()
-        self.memo_timer.timeout.connect(self.fetch_memo_async)
-        self.memo_timer.start(30000)
-        self.memo_updated.connect(self.update_memo)
         self.fetch_memo_async()
-
-        self.sound = None
-        self.setup_sound()
+        
+        return frame
 
     def setup_sound(self):
         try:
             sound_path = os.path.join("Assets", "alarm.wav")
             if os.path.exists(sound_path):
-                self.sound = QSoundEffect()
-                self.sound.setSource(QUrl.fromLocalFile(os.path.abspath(sound_path)))
-                self.sound.setLoopCount(999999)
-                self.sound.setVolume(0.5)
+                self.alarm_sound = pygame.mixer.Sound(sound_path)
+                return True
             else:
                 print(f"알람 파일을 찾을 수 없습니다: {sound_path}")
+                return False
         except Exception as e:
             print(f"알람음 설정 오류: {e}")
+            return False
 
     def start_alarm(self):
         print("알람 시작!")
-        if self.sound:
-            self.sound.play()
+        if self.setup_sound():
+            try:
+                # 무한 반복으로 재생
+                self.sound_channel = pygame.mixer.Channel(0)
+                self.sound_channel.play(self.alarm_sound, loops=-1)
+                self.sound_channel.set_volume(0.5)
+            except Exception as e:
+                print(f"알람음 재생 오류: {e}")
         else:
             print("알람음 파일이 설정되지 않았습니다.")
 
-        # ▶ 모션 인식 스레드 시작
+        # 모션 인식 스레드 시작
         threading.Thread(target=self.monitor_stretch_motion_thread, daemon=True).start()
 
     def monitor_stretch_motion_thread(self):
         if monitor_stretch_motion():
-            self.stop_alarm()
+            self.root.after(0, self.stop_alarm)  # GUI 스레드에서 실행
 
     def update_time(self):
-        now = datetime.datetime.now()
-        self.time_label.config(text=now.strftime("%H:%M:%S"))
+        if self.root:
+            now = datetime.datetime.now()
+            self.time_label.config(text=now.strftime("%H:%M:%S"))
+            self.root.after(1000, self.update_time)
 
     def fetch_memo_async(self):
         def run():
@@ -148,33 +152,44 @@ class AlarmRingScreen(tk.Frame):
                 date = get_date_memo()
                 self.memo_cache["regular"] = regular or "없음"
                 self.memo_cache["date"] = date or "없음"
-                self.memo_updated.emit()
+                if self.root:
+                    self.root.after(0, self.update_memo)  # GUI 스레드에서 실행
             except Exception as e:
                 print(f"메모 로드 오류: {e}")
                 self.memo_cache["regular"] = "로드 실패"
                 self.memo_cache["date"] = "로드 실패"
-                self.memo_updated.emit()
+                if self.root:
+                    self.root.after(0, self.update_memo)
+        
         threading.Thread(target=run, daemon=True).start()
+        
+        # 30초마다 메모 갱신
+        if self.root:
+            self.root.after(30000, self.fetch_memo_async)
 
     def update_memo(self):
-        self.memo_regular_label.config(text=f"✓ 정기 메모: {self.memo_cache['regular']}")
-        self.date_memo_label.config(text=f"🗓 날짜 메모: {self.memo_cache['date']}")
+        if hasattr(self, 'memo_regular_label'):
+            self.memo_regular_label.config(text=f"✓ 정기 메모: {self.memo_cache['regular']}")
+        if hasattr(self, 'date_memo_label'):
+            self.date_memo_label.config(text=f"🗓 날짜 메모: {self.memo_cache['date']}")
 
     def stop_alarm(self):
         print("알람 정지!")
-        if self.sound:
-            self.sound.stop()
-        self.setup_sound()
-        self.controller.setCurrentWidget(self.controller.clock_screen)
+        try:
+            if self.sound_channel:
+                self.sound_channel.stop()
+                self.sound_channel = None
+        except Exception as e:
+            print(f"알람 정지 오류: {e}")
+        
+        self.controller.show_screen('clock')
         print("시계 화면으로 전환")
 
-    def showEvent(self, event):
-        super().showEvent(event)
+    def on_show(self):
+        """화면이 표시될 때 호출"""
         self.start_alarm()
 
-    def keyPressEvent(self, event):
-        key = event.key()
-        if key in (Qt.Key.Key_Space, Qt.Key.Key_Return, Qt.Key.Key_Escape):
+    def on_key_press(self, event):
+        key = event.keysym
+        if key in ('space', 'Return', 'Escape'):
             self.stop_alarm()
-        else:
-            super().keyPressEvent(event)

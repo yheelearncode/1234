@@ -1,122 +1,105 @@
-# Tkinter handles widgets directly import tk.Frame, tk.Label, # layout replaced with tk.Frame and pack
-# Tkinter handles events differently, QTimer, QUrl, pyqtSignal
-from PyQt6.QtMultimedia import QSoundEffect
+import tkinter as tk
+from tkinter import ttk
 import datetime
 import os
 import threading
+import pygame
 from Services.memo_loader import get_regular_memo, get_date_memo
 
 class AlarmRingScreen(tk.Frame):
-    # 메모 갱신 시그널(메인스레드에서 setText 보장)
-    memo_updated = pyqtSignal()
-
     def __init__(self, controller):
-        super().__init__()
+        super().__init__(controller, bg='black')
         self.controller = controller
-        # self.config(bg=...)("background-color: black; color: white;")
-        layout = # layout replaced with tk.Frame and pack()
-        layout.setContentsMargins(20, 20, 20, 20)
-        layout.setSpacing(30)
-        # Layout managed via pack/grid(layout)
+        self.memo_cache = {"regular": "", "date": ""}
+        self.sound = None
+        
+        self.setup_ui()
+        self.setup_sound()
+        self.start_timers()
+
+    def setup_ui(self):
+        # 메인 프레임
+        main_frame = tk.Frame(self, bg='black')
+        main_frame.pack(expand=True, fill='both', padx=20, pady=20)
 
         # 🔔 아이콘
-        self.icon_label = tk.Label("🔔")
-        self.icon_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.icon_label.setStyleSheet("font-size: 200px;")
-        layout.pack()  # was addWidgetself.icon_label)
+        self.icon_label = tk.Label(main_frame, text="🔔", fg='white', bg='black', font=('Arial', 150))
+        self.icon_label.pack(pady=(0, 30))
 
         # 현재 시간
-        self.time_label = tk.Label("")
-        self.time_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.time_label.setStyleSheet("font-size: 60px;")
-        layout.pack()  # was addWidgetself.time_label)
+        self.time_label = tk.Label(main_frame, text="", fg='white', bg='black', font=('Arial', 40, 'bold'))
+        self.time_label.pack(pady=(0, 30))
 
         # 메모 박스
-        self.memo_box = tk.Frame()
-        self.memo_box.setStyleSheet("""
-            background-color: #222;
-            border: 1px solid #555;
-            border-radius: 10px;
-            padding: 10px;
-        """)
-        memo_layout = # layout replaced with tk.Frame and pack()
-        memo_layout.setSpacing(5)
-        self.memo_box.setLayout(memo_layout)
+        memo_frame = tk.Frame(main_frame, bg='#222222', relief='solid', bd=1)
+        memo_frame.pack(fill='x', pady=(0, 10))
 
-        self.memo_regular_label = tk.Label("")
-        self.memo_regular_label.setStyleSheet("font-size: 18px; color: white;")
-        memo_layout.pack()  # was addWidgetself.memo_regular_label)
+        # 정기 메모
+        self.memo_regular_label = tk.Label(memo_frame, text="", fg='white', bg='#222222', font=('Arial', 12), wraplength=600, justify='left')
+        self.memo_regular_label.pack(fill='x', padx=10, pady=(10, 5))
 
-        self.date_memo_label = tk.Label("")
-        self.date_memo_label.setStyleSheet("font-size: 18px; color: white; border-top: 1px solid #555; padding-top: 5px;")
-        memo_layout.pack()  # was addWidgetself.date_memo_label)
-
-        layout.pack()  # was addWidgetself.memo_box)
-
-        # 캐시
-        self.memo_cache = {"regular": "", "date": ""}
-
-        # 시계 타이머 (1초)
-        self.timer = QTimer()
-        self.timer.timeout.connect(self.update_time)
-        self.timer.start(1000)
-        self.update_time()
-
-        # 메모 타이머 (30초)
-        self.memo_timer = QTimer()
-        self.memo_timer.timeout.connect(self.fetch_memo_async)
-        self.memo_timer.start(30000)
-        self.memo_updated.connect(self.update_memo)
-        self.fetch_memo_async()  # 최초 1회
-
-        # 알람음 설정 (재생은 하지 않음)
-        self.sound = None
-        self.setup_sound()
+        # 날짜 메모
+        separator = tk.Frame(memo_frame, height=1, bg='#555555')
+        separator.pack(fill='x', padx=10)
+        
+        self.date_memo_label = tk.Label(memo_frame, text="", fg='white', bg='#222222', 
+                                        font=('Arial', 12), wraplength=600, justify='left')
+        self.date_memo_label.pack(fill='x', padx=10, pady=(5, 10))
 
     def setup_sound(self):
-        """알람음 설정 (매번 새로 생성)"""
+        """알람음 설정"""
         try:
+            pygame.mixer.init()
             sound_path = os.path.join("Assets", "alarm.wav")
             if os.path.exists(sound_path):
-                self.sound = QSoundEffect()
-                self.sound.setSource(QUrl.fromLocalFile(os.path.abspath(sound_path)))
-                self.sound.setLoopCount(999999)  # 사실상 무한 반복
-                self.sound.setVolume(0.5)
+                self.sound = pygame.mixer.Sound(sound_path)
             else:
                 print(f"알람 파일을 찾을 수 없습니다: {sound_path}")
         except Exception as e:
             print(f"알람음 설정 오류: {e}")
 
+    def start_timers(self):
+        """타이머 시작"""
+        self.update_time()
+        self.fetch_memo_async()
+
     def start_alarm(self):
-        """알람 시작 - 이 메서드가 호출될 때만 알람음 재생"""
+        """알람 시작"""
         print("알람 시작!")
         if self.sound:
-            self.sound.play()
+            try:
+                self.sound.play(loops=-1)  # 무한 반복
+            except Exception as e:
+                print(f"알람 재생 오류: {e}")
         else:
             print("알람음 파일이 설정되지 않았습니다.")
 
     def update_time(self):
+        """시간 업데이트"""
         now = datetime.datetime.now()
         self.time_label.config(text=now.strftime("%H:%M:%S"))
+        self.after(1000, self.update_time)
 
     def fetch_memo_async(self):
-        # 별도 쓰레드에서 서비스 함수 실행
+        """메모 비동기 로드"""
         def run():
             try:
                 regular = get_regular_memo()
                 date = get_date_memo()
                 self.memo_cache["regular"] = regular or "없음"
                 self.memo_cache["date"] = date or "없음"
-                self.memo_updated.emit()
+                self.after(0, self.update_memo)
             except Exception as e:
                 print(f"메모 로드 오류: {e}")
                 self.memo_cache["regular"] = "로드 실패"
                 self.memo_cache["date"] = "로드 실패"
-                self.memo_updated.emit()
+                self.after(0, self.update_memo)
         
         threading.Thread(target=run, daemon=True).start()
+        self.after(30000, self.fetch_memo_async)  # 30초마다 갱신
 
     def update_memo(self):
+        """메모 업데이트"""
         self.memo_regular_label.config(text=f"✓ 정기 메모: {self.memo_cache['regular']}")
         self.date_memo_label.config(text=f"🗓 날짜 메모: {self.memo_cache['date']}")
 
@@ -124,24 +107,21 @@ class AlarmRingScreen(tk.Frame):
         """알람 정지"""
         print("알람 정지!")
         if self.sound:
-            self.sound.stop()
-        
-        # 다음번을 위해 사운드 재설정
-        self.setup_sound()
+            try:
+                pygame.mixer.stop()
+            except Exception as e:
+                print(f"알람 정지 오류: {e}")
         
         # 시계 화면으로 전환
-        self.controller.setCurrentWidget(self.controller.clock_screen)
+        self.controller.show_clock_screen()
         print("시계 화면으로 전환")
 
-    def showEvent(self, event):
-        """화면이 표시될 때 알람 시작"""
-        super().showEvent(event)
+    def on_show(self):
+        """화면이 표시될 때 호출"""
         self.start_alarm()
+        self.focus_set()  # 키보드 포커스 설정
 
-    def keyPressEvent(self, event):
-        key = event.key()
-        if key in (Qt.Key.Key_Space, Qt.Key.Key_Return, Qt.Key.Key_Escape):
+    def on_key_press(self, event):
+        """키 입력 처리"""
+        if event.keysym in ('space', 'Return', 'Escape'):
             self.stop_alarm()
-        else:
-            super().keyPressEvent(event)
-        

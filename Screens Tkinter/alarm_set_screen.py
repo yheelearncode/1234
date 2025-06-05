@@ -1,5 +1,5 @@
-# Tkinter handles widgets directly import tk.Frame, tk.Label, # layout replaced with tk.Frame and pack
-# Tkinter handles events differently
+import tkinter as tk
+from tkinter import ttk
 import requests
 import datetime
 
@@ -13,67 +13,40 @@ def get_today_and_next_dates():
 
 class AlarmSetScreen(tk.Frame):
     def __init__(self, controller):
-        super().__init__()
+        super().__init__(controller, bg='black')
         self.controller = controller
-        # self.config(bg=...)("background-color: black; color: white;")
         self.selected_index = 0
         self.edit_mode = False
-
-        layout = # layout replaced with tk.Frame and pack()
-        layout.setContentsMargins(20, 20, 20, 20)
-        layout.setSpacing(20)
-        # Layout managed via pack/grid(layout)
-
-        self.active_label = tk.Label("🔘 알람 활성화: OFF")
-        self.active_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.active_label.setStyleSheet(self.active_box_style())
-        layout.pack()  # was addWidgetself.active_label)
-
-        self.empty_label = tk.Label("")
-        self.empty_label.setFixedHeight(60)
-        layout.pack()  # was addWidgetself.empty_label)
-
         self.hour = 7
-        self.hour_label = tk.Label(f"{self.hour:02d} 시")
-        self.hour_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.hour_label.setStyleSheet(self.time_box_style())
-        layout.pack()  # was addWidgetself.hour_label)
-
         self.minute = 30
-        self.minute_label = tk.Label(f"{self.minute:02d} 분")
-        self.minute_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.minute_label.setStyleSheet(self.time_box_style())
-        layout.pack()  # was addWidgetself.minute_label)
+        
+        self.setup_ui()
+
+    def setup_ui(self):
+        """UI 구성"""
+        main_frame = tk.Frame(self, bg='black')
+        main_frame.pack(expand=True, fill='both', padx=20, pady=20)
+
+        # 알람 활성화 버튼
+        self.active_label = tk.Label(main_frame, text="🔘 알람 활성화: OFF", fg='white', bg='#222222', font=('Arial', 14),relief='solid', bd=1, pady=15)
+        self.active_label.pack(fill='x', pady=(0, 60))
+
+        # 시간 설정
+        self.hour_label = tk.Label(main_frame, text=f"{self.hour:02d} 시", fg='white', bg='#222222', font=('Arial', 20),relief='solid', bd=1, pady=40)
+        self.hour_label.pack(fill='x', pady=(0, 20))
+
+        self.minute_label = tk.Label(main_frame, text=f"{self.minute:02d} 분", fg='white', bg='#222222', font=('Arial', 20),relief='solid', bd=1, pady=40)
+        self.minute_label.pack(fill='x')
 
         self.update_highlight()
 
-    def active_box_style(self):
-        return """
-            background-color: #222;
-            border: 1px solid #555;
-            border-radius: 10px;
-            padding: 3px 15px;
-            font-size: 18px;
-            min-height: 25px;
-        """
-
-    def time_box_style(self):
-        return """
-            background-color: #222;
-            border: 1px solid #555;
-            border-radius: 10px;
-            padding: 20px;
-            font-size: 28px;
-            min-height: 80px;
-        """
-
     def update_highlight(self):
+        """하이라이트 업데이트"""
         labels = [self.active_label, self.hour_label, self.minute_label]
+        
         for i, label in enumerate(labels):
             if i == self.selected_index:
-                style = self.time_box_style() if i != 0 else self.active_box_style()
-                style += "border: 2px solid #0f0;"
-                label.setStyleSheet(style)
+                label.config(bg='#222222', fg='lime', relief='solid', bd=2)
                 if i == 1 and self.edit_mode:
                     label.config(text=f"▲\n{self.hour:02d} 시\n▼")
                 elif i == 2 and self.edit_mode:
@@ -84,15 +57,17 @@ class AlarmSetScreen(tk.Frame):
                     elif i == 2:
                         label.config(text=f"{self.minute:02d} 분")
             else:
+                label.config(bg='#222222', fg='white', relief='solid', bd=1)
                 if i == 1:
                     label.config(text=f"{self.hour:02d} 시")
                 elif i == 2:
                     label.config(text=f"{self.minute:02d} 분")
-                label.setStyleSheet(self.time_box_style() if i != 0 else self.active_box_style())
 
-    def keyPressEvent(self, event):
-        key = event.key()
-        if key == Qt.Key.Key_Up:
+    def on_key_press(self, event):
+        """키 입력 처리"""
+        key = event.keysym
+        
+        if key == 'Up':
             if self.edit_mode:
                 if self.selected_index == 1:
                     self.hour = (self.hour + 1) % 24
@@ -102,7 +77,7 @@ class AlarmSetScreen(tk.Frame):
                 self.selected_index = (self.selected_index - 1) % 3
             self.update_highlight()
 
-        elif key == Qt.Key.Key_Down:
+        elif key == 'Down':
             if self.edit_mode:
                 if self.selected_index == 1:
                     self.hour = (self.hour - 1) % 24
@@ -112,7 +87,7 @@ class AlarmSetScreen(tk.Frame):
                 self.selected_index = (self.selected_index + 1) % 3
             self.update_highlight()
 
-        elif key in (Qt.Key.Key_Space, Qt.Key.Key_Return):
+        elif key in ('space', 'Return'):
             if self.selected_index == 0:
                 self.handle_alarm_toggle()
             elif self.selected_index in [1, 2]:
@@ -120,7 +95,8 @@ class AlarmSetScreen(tk.Frame):
                 self.update_highlight()
 
     def handle_alarm_toggle(self):
-        current_text = self.active_label.get()
+        """알람 토글 처리"""
+        current_text = self.active_label.cget('text')
         today, next_day = get_today_and_next_dates()
         alarm_time = f"{self.hour:02d}:{self.minute:02d}"
 
@@ -150,3 +126,7 @@ class AlarmSetScreen(tk.Frame):
                 except Exception as e:
                     print(f"[알람 삭제 실패: {target_date}] {e}")
         self.update_highlight()
+
+    def on_show(self):
+        """화면이 표시될 때 호출"""
+        self.focus_set()  # 키보드 포커스 설정
