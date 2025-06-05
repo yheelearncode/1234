@@ -1,5 +1,5 @@
-import tkinter as tk.QtWidgets import tk.Tk, tk.Label, # Layout placeholder (Tkinter uses pack/grid/place)
-import tkinter as tk.QtCore import Qt
+# Tkinter handles widgets directly import tk.Frame, tk.Label, # tk.Frame used; use pack/grid for layout
+# Tkinter handles events differently
 import requests
 import datetime
 
@@ -11,39 +11,39 @@ def get_today_and_next_dates():
     next_day = today + datetime.timedelta(days=1)
     return today, next_day
 
-class AlarmSetScreen(tk.Tk):
+class AlarmSetScreen(tk.Frame):
     def __init__(self, controller):
         super().__init__()
         self.controller = controller
-        self.setStyleSheet("background-color: black; color: white;")
+        # self.config(bg=...)("background-color: black; color: white;")
         self.selected_index = 0
         self.edit_mode = False
 
-        layout = # Layout placeholder (Tkinter uses pack/grid/place)()
+        layout = # tk.Frame used; use pack/grid for layout()
         layout.setContentsMargins(20, 20, 20, 20)
         layout.setSpacing(20)
-        self.setLayout(layout)
+        # Layout management handled via pack/grid(layout)
 
         self.active_label = tk.Label("🔘 알람 활성화: OFF")
         self.active_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.active_label.setStyleSheet(self.active_box_style())
-        layout.addWidget(self.active_label)
+        layout.pack()  # was addWidgetself.active_label)
 
         self.empty_label = tk.Label("")
         self.empty_label.setFixedHeight(60)
-        layout.addWidget(self.empty_label)
+        layout.pack()  # was addWidgetself.empty_label)
 
         self.hour = 7
         self.hour_label = tk.Label(f"{self.hour:02d} 시")
         self.hour_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.hour_label.setStyleSheet(self.time_box_style())
-        layout.addWidget(self.hour_label)
+        layout.pack()  # was addWidgetself.hour_label)
 
         self.minute = 30
         self.minute_label = tk.Label(f"{self.minute:02d} 분")
         self.minute_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.minute_label.setStyleSheet(self.time_box_style())
-        layout.addWidget(self.minute_label)
+        layout.pack()  # was addWidgetself.minute_label)
 
         self.update_highlight()
 
@@ -75,19 +75,19 @@ class AlarmSetScreen(tk.Tk):
                 style += "border: 2px solid #0f0;"
                 label.setStyleSheet(style)
                 if i == 1 and self.edit_mode:
-                    label.config(text=(f"▲\n{self.hour:02d} 시\n▼")
+                    label.config(text=f"▲\n{self.hour:02d} 시\n▼")
                 elif i == 2 and self.edit_mode:
-                    label.config(text=(f"▲\n{self.minute:02d} 분\n▼")
+                    label.config(text=f"▲\n{self.minute:02d} 분\n▼")
                 else:
                     if i == 1:
-                        label.config(text=(f"{self.hour:02d} 시")
+                        label.config(text=f"{self.hour:02d} 시")
                     elif i == 2:
-                        label.config(text=(f"{self.minute:02d} 분")
+                        label.config(text=f"{self.minute:02d} 분")
             else:
                 if i == 1:
-                    label.config(text=(f"{self.hour:02d} 시")
+                    label.config(text=f"{self.hour:02d} 시")
                 elif i == 2:
-                    label.config(text=(f"{self.minute:02d} 분")
+                    label.config(text=f"{self.minute:02d} 분")
                 label.setStyleSheet(self.time_box_style() if i != 0 else self.active_box_style())
 
     def keyPressEvent(self, event):
@@ -125,7 +125,7 @@ class AlarmSetScreen(tk.Tk):
         alarm_time = f"{self.hour:02d}:{self.minute:02d}"
 
         if "OFF" in current_text:
-            self.active_label.config(text=("🔘 알람 활성화: ON")
+            self.active_label.config(text="🔘 알람 활성화: ON")
             try:
                 requests.post(
                     f"{API_BASE_URL}/api/alarms/temp",
@@ -137,7 +137,7 @@ class AlarmSetScreen(tk.Tk):
             except Exception as e:
                 print(f"[알람 등록 실패] {e}")
         else:
-            self.active_label.config(text=("🔘 알람 활성화: OFF")
+            self.active_label.config(text="🔘 알람 활성화: OFF")
             for target_date in [today, next_day]:
                 try:
                     requests.delete(
