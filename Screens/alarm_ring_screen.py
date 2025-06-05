@@ -1,108 +1,105 @@
-from PyQt6.QtWidgets import QWidget, QLabel, QVBoxLayout
-from PyQt6.QtCore import Qt, QTimer, QUrl, pyqtSignal
-from PyQt6.QtMultimedia import QSoundEffect
-import datetime
-import os
+import tkinter as tk
+from datetime import datetime
 import threading
-
+import os
 from Services.memo_loader import get_regular_memo, get_date_memo
 
-class AlarmRingScreen(QWidget):
-    # 메모 갱신 시그널(메인스레드에서 setText 보장)
-    memo_updated = pyqtSignal()
-
-    def __init__(self, controller):
-        super().__init__()
+class AlarmRingScreen:
+    def __init__(self, root, controller):
+        self.root = root
         self.controller = controller
-        self.setStyleSheet("background-color: black; color: white;")
-
-        layout = QVBoxLayout()
-        layout.setContentsMargins(20, 20, 20, 20)
-        layout.setSpacing(30)
-        self.setLayout(layout)
-
-        # 🔔 아이콘
-        self.icon_label = QLabel("🔔")
-        self.icon_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.icon_label.setStyleSheet("font-size: 200px;")
-        layout.addWidget(self.icon_label)
-
-        # 현재 시간
-        self.time_label = QLabel("")
-        self.time_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.time_label.setStyleSheet("font-size: 60px;")
-        layout.addWidget(self.time_label)
-
-        # 메모 박스
-        self.memo_box = QWidget()
-        self.memo_box.setStyleSheet("""
-            background-color: #222;
-            border: 1px solid #555;
-            border-radius: 10px;
-            padding: 10px;
-        """)
-        memo_layout = QVBoxLayout()
-        memo_layout.setSpacing(5)
-        self.memo_box.setLayout(memo_layout)
-
-        self.memo_regular_label = QLabel("")
-        self.memo_regular_label.setStyleSheet("font-size: 18px; color: white;")
-        memo_layout.addWidget(self.memo_regular_label)
-
-        self.date_memo_label = QLabel("")
-        self.date_memo_label.setStyleSheet("font-size: 18px; color: white; border-top: 1px solid #555; padding-top: 5px;")
-        memo_layout.addWidget(self.date_memo_label)
-
-        layout.addWidget(self.memo_box)
-
-        # 캐시
         self.memo_cache = {"regular": "", "date": ""}
 
-        # 시계 타이머 (1초)
-        self.timer = QTimer()
-        self.timer.timeout.connect(self.update_time)
-        self.timer.start(1000)
+    def create_frame(self, parent):
+        self.frame = tk.Frame(parent, bg='black')
+        self.frame.pack(fill='both', expand=True)
+        
+        # 현재 시간
+        self.time_label = tk.Label(
+            self.frame,
+            text="",
+            fg="white",
+            bg="black",
+            font=("Helvetica", 60)
+        )
+        self.time_label.pack(pady=20)
+        
+        # 메모 영역
+        memo_frame = tk.Frame(self.frame, bg='#222222', bd=1, relief=tk.SOLID)
+        memo_frame.pack(fill=tk.X, padx=20, pady=10)
+        
+        self.memo_regular_label = tk.Label(
+            memo_frame,
+            text="",
+            fg="white",
+            bg="#222222",
+            font=("Helvetica", 14),
+            wraplength=600
+        )
+        self.memo_regular_label.pack(pady=5)
+        
+        self.date_memo_label = tk.Label(
+            memo_frame,
+            text="",
+            fg="white",
+            bg="#222222",
+            font=("Helvetica", 14),
+            wraplength=600
+        )
+        self.date_memo_label.pack(pady=5)
+        
+        # 안내 메시지
+        self.instruction_label = tk.Label(
+            self.frame,
+            text="스페이스바 또는 엔터를 눌러 알람을 종료하세요",
+            fg="white",
+            bg="black",
+            font=("Helvetica", 14)
+        )
+        self.instruction_label.pack(pady=20)
+        
+        # 키 이벤트 바인딩
+        self.frame.focus_set()
+        self.frame.bind('<space>', lambda e: self.stop_alarm())
+        self.frame.bind('<Return>', lambda e: self.stop_alarm())
+        
         self.update_time()
-
-        # 메모 타이머 (30초)
-        self.memo_timer = QTimer()
-        self.memo_timer.timeout.connect(self.fetch_memo_async)
-        self.memo_timer.start(30000)
-        self.memo_updated.connect(self.update_memo)
-        self.fetch_memo_async()  # 최초 1회
-
-        # 알람음 재생
-        self.sound = QSoundEffect()
-        sound_path = os.path.join("Assets", "alarm.mp3")
-        self.sound.setSource(QUrl.fromLocalFile(os.path.abspath(sound_path)))
-        self.sound.setLoopCount(999999)  # 사실상 무한 반복
-        self.sound.setVolume(0.5)
-        self.sound.play()
+        self.fetch_memo()
+        
+        return self.frame
 
     def update_time(self):
-        now = datetime.datetime.now()
-        self.time_label.setText(now.strftime("%H:%M:%S"))
+        now = datetime.now()
+        self.time_label.config(text=now.strftime("%H:%M:%S"))
+        self.frame.after(1000, self.update_time)
 
-    def fetch_memo_async(self):
-        # 별도 쓰레드에서 서비스 함수 실행
+    def fetch_memo(self):
         def run():
-            regular = get_regular_memo()
-            date = get_date_memo()
-            self.memo_cache["regular"] = regular
-            self.memo_cache["date"] = date
-            self.memo_updated.emit()
+            try:
+                regular = get_regular_memo()
+                date = get_date_memo()
+                self.memo_cache["regular"] = regular
+                self.memo_cache["date"] = date
+                self.frame.after(0, self.update_memo)
+            except Exception as e:
+                print(f"메모 가져오기 오류: {e}")
+        
         threading.Thread(target=run).start()
+        self.frame.after(30000, self.fetch_memo)
 
     def update_memo(self):
-        self.memo_regular_label.setText(f"✓ 정기 메모: {self.memo_cache['regular']}")
-        self.date_memo_label.setText(f"🗓 날짜 메모: {self.memo_cache['date']}")
+        self.memo_regular_label.config(text=f"✓ 정기 메모: {self.memo_cache['regular']}")
+        self.date_memo_label.config(text=f"🗓 날짜 메모: {self.memo_cache['date']}")
 
     def stop_alarm(self):
-        self.sound.stop()
-        self.controller.setCurrentWidget(self.controller.clock_screen)
+        # TODO: 알람음 정지 기능 구현
+        self.controller.show_screen('clock')
         print("알람 종료, 시계 화면으로 전환")
 
-    def keyPressEvent(self, event):
-        key = event.key()
-        if key in (Qt.Key.Key_Space, Qt.Key.Key_Return):
+    def on_show(self):
+        self.frame.focus_set()
+        self.fetch_memo()
+
+    def on_key_press(self, event):
+        if event.keysym in ['space', 'Return']:
             self.stop_alarm()

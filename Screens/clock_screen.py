@@ -1,161 +1,115 @@
-from PyQt6.QtWidgets import QWidget, QLabel, QVBoxLayout, QHBoxLayout
-from PyQt6.QtCore import QTimer, Qt, pyqtSignal
-import datetime
+import tkinter as tk
+from datetime import datetime
 import threading
 from Services.memo_loader import get_regular_memo, get_date_memos
 from Services.weather_api import get_weather
 from Services.alarm_manager import get_regular_alarms, get_temporary_alarm
 
-class ClockScreen(QWidget):
-    # 신호: 데이터 업데이트 시 UI 갱신
-    data_updated = pyqtSignal()
-
-    def __init__(self, controller):
-        super().__init__()
+class ClockScreen:
+    def __init__(self, root, controller):
+        self.root = root
         self.controller = controller
-        self.setStyleSheet("background-color: black; color: white;")
-        self.layout = QVBoxLayout()
-        self.layout.setContentsMargins(20, 20, 20, 20)
-        self.layout.setSpacing(15)
-        self.setLayout(self.layout)
-
-        # 날짜/시간
-        self.date_label = QLabel("")
-        self.date_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.date_label.setStyleSheet("font-size: 22px; color: white;")
-        self.layout.addWidget(self.date_label)
-
-        self.time_label = QLabel("")
-        self.time_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.time_label.setStyleSheet("font-size: 100px; color: white; font-weight: bold;")
-        self.layout.addWidget(self.time_label)
-
-        # 날씨/미세먼지
-        weather_dust_layout = QHBoxLayout()
-        self.weather_label = QLabel("")
-        self.weather_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.weather_label.setStyleSheet("font-size: 18px; color: white;")
-        weather_dust_layout.addWidget(self.weather_label)
-
-        self.dust_label = QLabel("")
-        self.dust_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.dust_label.setStyleSheet("font-size: 18px; color: white;")
-        weather_dust_layout.addWidget(self.dust_label)
-
-        self.layout.addLayout(weather_dust_layout)
-
-        # 메모 박스
-        self.memo_box = QWidget()
-        self.memo_box.setStyleSheet("""
-            background-color: #222;
-            border: 1px solid #555;
-            border-radius: 10px;
-            padding: 10px;
-        """)
-        memo_layout = QVBoxLayout()
-        memo_layout.setSpacing(5)
-        self.memo_box.setLayout(memo_layout)
-
-        self.memo_regular_label = QLabel("")
-        self.memo_regular_label.setStyleSheet("font-size: 18px; color: white;")
-        self.memo_regular_label.setWordWrap(True)
-        memo_layout.addWidget(self.memo_regular_label)
-
-        self.date_memo_label = QLabel("")
-        self.date_memo_label.setStyleSheet("font-size: 18px; color: white; border-top: 1px solid #555; padding-top: 5px;")
-        self.date_memo_label.setWordWrap(True)
-        memo_layout.addWidget(self.date_memo_label)
-
-        self.layout.addWidget(self.memo_box)
-
-        # 알람 박스
-        self.alarm_box = QWidget()
-        self.alarm_box.setStyleSheet("""
-            background-color: #222;
-            border: 1px solid #555;
-            border-radius: 10px;
-            padding: 10px;
-        """)
-        alarm_layout = QVBoxLayout()
-        alarm_layout.setSpacing(5)
-        self.alarm_box.setLayout(alarm_layout)
-
-        self.alarm_regular_label = QLabel("")
-        self.alarm_regular_label.setStyleSheet("font-size: 18px; color: white;")
-        self.alarm_regular_label.setWordWrap(True)
-        alarm_layout.addWidget(self.alarm_regular_label)
-
-        self.alarm_temp_label = QLabel("")
-        self.alarm_temp_label.setStyleSheet("font-size: 18px; color: white; border-top: 1px solid #555; padding-top: 5px;")
-        self.alarm_temp_label.setWordWrap(True)
-        alarm_layout.addWidget(self.alarm_temp_label)
-
-        self.layout.addWidget(self.alarm_box)
-
-        # ------- 캐시 구조
         self.weather_cache = {'weather': '-', 'temperature': '-', 'dust': '-'}
         self.memo_cache = {'regular': '', 'date_memos': {}}
         self.alarm_cache = {'regular': [], 'temp': None}
 
-        # 신호 연결
-        self.data_updated.connect(self.update_info)
+    def create_frame(self, parent):
+        self.frame = tk.Frame(parent, bg='black')
+        self.frame.pack(fill='both', expand=True)
+        
+        # 시간과 날짜
+        self.date_label = tk.Label(self.frame, text="", fg="white", bg="black", font=("Helvetica", 18))
+        self.date_label.pack(pady=10)
+        
+        self.time_label = tk.Label(self.frame, text="", fg="white", bg="black", font=("Helvetica", 36))
+        self.time_label.pack(pady=10)
+        
+        # 날씨/미세먼지
+        weather_frame = tk.Frame(self.frame, bg='black')
+        weather_frame.pack(pady=10)
+        
+        self.weather_label = tk.Label(weather_frame, text="", fg="white", bg="black", font=("Helvetica", 14))
+        self.weather_label.pack(side=tk.LEFT, padx=10)
+        
+        self.dust_label = tk.Label(weather_frame, text="", fg="white", bg="black", font=("Helvetica", 14))
+        self.dust_label.pack(side=tk.LEFT, padx=10)
+        
+        # 메모 영역
+        memo_frame = tk.Frame(self.frame, bg='#222222', bd=1, relief=tk.SOLID)
+        memo_frame.pack(fill=tk.X, padx=20, pady=10)
+        
+        self.memo_regular_label = tk.Label(memo_frame, text="", fg="white", bg="#222222", font=("Helvetica", 14), wraplength=600)
+        self.memo_regular_label.pack(pady=5)
+        
+        self.date_memo_label = tk.Label(memo_frame, text="", fg="white", bg="#222222", font=("Helvetica", 14), wraplength=600)
+        self.date_memo_label.pack(pady=5)
+        
+        # 알람 영역
+        alarm_frame = tk.Frame(self.frame, bg='#222222', bd=1, relief=tk.SOLID)
+        alarm_frame.pack(fill=tk.X, padx=20, pady=10)
+        
+        self.alarm_regular_label = tk.Label(alarm_frame, text="", fg="white", bg="#222222", font=("Helvetica", 14), wraplength=600)
+        self.alarm_regular_label.pack(pady=5)
+        
+        self.alarm_temp_label = tk.Label(alarm_frame, text="", fg="white", bg="#222222", font=("Helvetica", 14), wraplength=600)
+        self.alarm_temp_label.pack(pady=5)
+        
+        self.update_time()
+        self.fetch_all_data()
+        
+        return self.frame
 
-        # 1초마다 시계만 update
-        self.timer = QTimer()
-        self.timer.timeout.connect(self.update_time_only)
-        self.timer.start(1000)
-        self.update_time_only()
+    def update_time(self):
+        now = datetime.now()
+        self.date_label.config(text=now.strftime("%Y-%m-%d (%A)"))
+        self.time_label.config(text=now.strftime("%H:%M:%S"))
+        self.frame.after(1000, self.update_time)
 
-        # 날씨/메모/알람은 별도 타이머(60초마다) + 스레드에서 fetch
-        self.data_timer = QTimer()
-        self.data_timer.timeout.connect(self.fetch_all_async)
-        self.data_timer.start(60000)
-        self.fetch_all_async()  # 최초 1회
-
-    def update_time_only(self):
-        now = datetime.datetime.now()
-        self.date_label.setText(now.strftime("%Y-%m-%d (%A)"))
-        self.time_label.setText(now.strftime("%H:%M:%S"))
-
-    def fetch_all_async(self):
-        # 데이터 fetch, UI는 신호로만 갱신
+    def fetch_all_data(self):
         def run():
-            weather = get_weather()
-            regular_memo = get_regular_memo()
-            date_memos = get_date_memos()
-            regular_alarms = get_regular_alarms()
-            temp_alarm = get_temporary_alarm()
-            self.weather_cache = weather
-            self.memo_cache = {
-                "regular": regular_memo,
-                "date_memos": date_memos,
-            }
-            self.alarm_cache = {
-                "regular": regular_alarms,
-                "temp": temp_alarm,
-            }
-            self.data_updated.emit()
+            try:
+                weather = get_weather()
+                regular_memo = get_regular_memo()
+                date_memos = get_date_memos()
+                regular_alarms = get_regular_alarms()
+                temp_alarm = get_temporary_alarm()
+                
+                self.weather_cache = weather
+                self.memo_cache = {
+                    "regular": regular_memo,
+                    "date_memos": date_memos,
+                }
+                self.alarm_cache = {
+                    "regular": regular_alarms,
+                    "temp": temp_alarm,
+                }
+                
+                self.frame.after(0, self.update_info)
+            except Exception as e:
+                print(f"데이터 가져오기 오류: {e}")
+        
         threading.Thread(target=run).start()
+        self.frame.after(60000, self.fetch_all_data)
 
     def update_info(self):
         # 날씨
         w = self.weather_cache
-        self.weather_label.setText(f"☁ 날씨: {w['weather']} {w['temperature']}")
-        self.dust_label.setText(f"🌫 미세먼지: {w['dust']}")
+        self.weather_label.config(text=f"☁ 날씨: {w['weather']} {w['temperature']}")
+        self.dust_label.config(text=f"🌫 미세먼지: {w['dust']}")
 
         # 정기 메모
         regular_memo = self.memo_cache["regular"]
         if regular_memo:
-            self.memo_regular_label.setText(f"✓ 정기 메모: {regular_memo}")
+            self.memo_regular_label.config(text=f"✓ 정기 메모: {regular_memo}")
         else:
-            self.memo_regular_label.setText("✓ 정기 메모: 없음")
+            self.memo_regular_label.config(text="✓ 정기 메모: 없음")
 
         # 날짜 메모
-        now = datetime.datetime.now()
+        now = datetime.now()
         today = now.strftime("%Y-%m-%d")
         date_memos = self.memo_cache["date_memos"]
         if today in date_memos:
-            self.date_memo_label.setText(f"🗓 오늘의 메모: {date_memos[today]}")
+            self.date_memo_label.config(text=f"🗓 오늘의 메모: {date_memos[today]}")
         else:
             next_memo = None
             next_date = None
@@ -165,21 +119,27 @@ class ClockScreen(QWidget):
                     next_date = date
                     break
             if next_memo:
-                self.date_memo_label.setText(f"🗓 다음 메모 ({next_date}): {next_memo}")
+                self.date_memo_label.config(text=f"🗓 다음 메모 ({next_date}): {next_memo}")
             else:
-                self.date_memo_label.setText("🗓 예정된 메모 없음")
+                self.date_memo_label.config(text="🗓 예정된 메모 없음")
 
         # 정기 알람
         alarms = self.alarm_cache["regular"]
         if alarms:
             alarm_texts = [f"{time} ({label})" for time, label in alarms]
-            self.alarm_regular_label.setText("🔔 정기 알람: " + ", ".join(alarm_texts))
+            self.alarm_regular_label.config(text="🔔 정기 알람: " + ", ".join(alarm_texts))
         else:
-            self.alarm_regular_label.setText("🔔 정기 알람 없음")
+            self.alarm_regular_label.config(text="🔔 정기 알람 없음")
 
         # 임시 알람
         temp_alarm = self.alarm_cache["temp"]
         if temp_alarm:
-            self.alarm_temp_label.setText(f"⏰ 임시 알람: {temp_alarm}")
+            self.alarm_temp_label.config(text=f"⏰ 임시 알람: {temp_alarm}")
         else:
-            self.alarm_temp_label.setText("⏰ 임시 알람 없음")
+            self.alarm_temp_label.config(text="⏰ 임시 알람 없음")
+
+    def on_show(self):
+        self.fetch_all_data()
+
+    def on_key_press(self, event):
+        pass
