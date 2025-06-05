@@ -1,53 +1,53 @@
-from PyQt6.QtWidgets import QWidget, QLabel, QVBoxLayout
-from PyQt6.QtCore import Qt, QTimer, QUrl, pyqtSignal
-from PyQt6.QtMultimedia import QSoundEffect
+import tkinter as tk.QtWidgets import tk.Tk, tk.Label, # Layout placeholder (Tkinter uses pack/grid/place)
+import tkinter as tk.QtCore import Qt, QTimer, QUrl, pyqtSignal
+import tkinter as tk.QtMultimedia import QSoundEffect
 import datetime
 import os
 import threading
 from Services.memo_loader import get_regular_memo, get_date_memo
 
-class AlarmRingScreen(QWidget):
-    # 메모 갱신 시그널(메인스레드에서 setText 보장)
+class AlarmRingScreen(tk.Tk):
+    # 메모 갱신 시그널(메인스레드에서 config(text= 보장)
     memo_updated = pyqtSignal()
 
     def __init__(self, controller):
         super().__init__()
         self.controller = controller
         self.setStyleSheet("background-color: black; color: white;")
-        layout = QVBoxLayout()
+        layout = # Layout placeholder (Tkinter uses pack/grid/place)()
         layout.setContentsMargins(20, 20, 20, 20)
         layout.setSpacing(30)
         self.setLayout(layout)
 
         # 🔔 아이콘
-        self.icon_label = QLabel("🔔")
+        self.icon_label = tk.Label("🔔")
         self.icon_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.icon_label.setStyleSheet("font-size: 200px;")
         layout.addWidget(self.icon_label)
 
         # 현재 시간
-        self.time_label = QLabel("")
+        self.time_label = tk.Label("")
         self.time_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.time_label.setStyleSheet("font-size: 60px;")
         layout.addWidget(self.time_label)
 
         # 메모 박스
-        self.memo_box = QWidget()
+        self.memo_box = tk.Tk()
         self.memo_box.setStyleSheet("""
             background-color: #222;
             border: 1px solid #555;
             border-radius: 10px;
             padding: 10px;
         """)
-        memo_layout = QVBoxLayout()
+        memo_layout = # Layout placeholder (Tkinter uses pack/grid/place)()
         memo_layout.setSpacing(5)
         self.memo_box.setLayout(memo_layout)
 
-        self.memo_regular_label = QLabel("")
+        self.memo_regular_label = tk.Label("")
         self.memo_regular_label.setStyleSheet("font-size: 18px; color: white;")
         memo_layout.addWidget(self.memo_regular_label)
 
-        self.date_memo_label = QLabel("")
+        self.date_memo_label = tk.Label("")
         self.date_memo_label.setStyleSheet("font-size: 18px; color: white; border-top: 1px solid #555; padding-top: 5px;")
         memo_layout.addWidget(self.date_memo_label)
 
@@ -97,7 +97,7 @@ class AlarmRingScreen(QWidget):
 
     def update_time(self):
         now = datetime.datetime.now()
-        self.time_label.setText(now.strftime("%H:%M:%S"))
+        self.time_label.config(text=(now.strftime("%H:%M:%S"))
 
     def fetch_memo_async(self):
         # 별도 쓰레드에서 서비스 함수 실행
@@ -117,8 +117,8 @@ class AlarmRingScreen(QWidget):
         threading.Thread(target=run, daemon=True).start()
 
     def update_memo(self):
-        self.memo_regular_label.setText(f"✓ 정기 메모: {self.memo_cache['regular']}")
-        self.date_memo_label.setText(f"🗓 날짜 메모: {self.memo_cache['date']}")
+        self.memo_regular_label.config(text=(f"✓ 정기 메모: {self.memo_cache['regular']}")
+        self.date_memo_label.config(text=(f"🗓 날짜 메모: {self.memo_cache['date']}")
 
     def stop_alarm(self):
         """알람 정지"""

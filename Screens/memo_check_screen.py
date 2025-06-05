@@ -1,11 +1,11 @@
-from PyQt6.QtWidgets import QWidget, QLabel, QVBoxLayout, QScrollArea, QSizePolicy
-from PyQt6.QtCore import Qt, QTimer, pyqtSignal
+import tkinter as tk.QtWidgets import tk.Tk, tk.Label, # Layout placeholder (Tkinter uses pack/grid/place), QScrollArea, QSizePolicy
+import tkinter as tk.QtCore import Qt, QTimer, pyqtSignal
 import threading
 from Services.memo_loader import get_regular_memo, get_date_memos
 from Services.alarm_manager import get_regular_alarms
 from datetime import datetime
 
-class MemoCheckScreen(QWidget):
+class MemoCheckScreen(tk.Tk):
     memo_updated = pyqtSignal()
 
     def __init__(self, controller):
@@ -13,12 +13,12 @@ class MemoCheckScreen(QWidget):
         self.controller = controller
         self.setStyleSheet("background-color: black; color: white;")
 
-        main_layout = QVBoxLayout()
+        main_layout = # Layout placeholder (Tkinter uses pack/grid/place)()
         main_layout.setContentsMargins(20, 20, 20, 20)
         main_layout.setSpacing(15)
         self.setLayout(main_layout)
 
-        title = QLabel("📝 메모 확인")
+        title = tk.Label("📝 메모 확인")
         title.setAlignment(Qt.AlignmentFlag.AlignCenter)
         title.setStyleSheet("font-size: 32px; font-weight: bold;")
         main_layout.addWidget(title)
@@ -48,14 +48,14 @@ class MemoCheckScreen(QWidget):
             }
         """)
         
-        content_widget = QWidget()
-        self.content_layout = QVBoxLayout(content_widget)
+        content_widget = tk.Tk()
+        self.content_layout = # Layout placeholder (Tkinter uses pack/grid/place)(content_widget)
         self.content_layout.setSpacing(15)
         scroll.setWidget(content_widget)
         main_layout.addWidget(scroll)
 
         # 알람 레이블 추가
-        self.regular_alarm_label = QLabel()
+        self.regular_alarm_label = tk.Label()
         self.regular_alarm_label.setStyleSheet("""
             font-size: 18px;
             color: white;
@@ -82,23 +82,23 @@ class MemoCheckScreen(QWidget):
         self.fetch_memo_async()  # 최초 1회
 
     def create_memo_box(self, title, content):
-        box = QWidget()
+        box = tk.Tk()
         box.setStyleSheet("""
             background-color: #222;
             border: 1px solid #555;
             border-radius: 10px;
             padding: 10px;
         """)
-        layout = QVBoxLayout()
+        layout = # Layout placeholder (Tkinter uses pack/grid/place)()
         layout.setSpacing(5)
         box.setLayout(layout)
 
-        title_label = QLabel(title)
+        title_label = tk.Label(title)
         title_label.setStyleSheet("font-size: 18px; color: #aaa;")
         title_label.setWordWrap(True)
         layout.addWidget(title_label)
 
-        content_label = QLabel(content)
+        content_label = tk.Label(content)
         content_label.setStyleSheet("font-size: 20px; color: white;")
         content_label.setWordWrap(True)
         layout.addWidget(content_label)
@@ -149,7 +149,7 @@ class MemoCheckScreen(QWidget):
                 )
 
         # 빈 공간 추가
-        spacer = QWidget()
+        spacer = tk.Tk()
         spacer.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         self.content_layout.addWidget(spacer)
 
@@ -157,6 +157,6 @@ class MemoCheckScreen(QWidget):
         alarms = self.memo_cache["alarms"]
         if alarms:
             alarm_texts = [f"🔔 {time} ({label})" for time, label in alarms]
-            self.regular_alarm_label.setText("\n".join(alarm_texts))
+            self.regular_alarm_label.config(text=("\n".join(alarm_texts))
         else:
-            self.regular_alarm_label.setText("🔔 정기 알람 없음")
+            self.regular_alarm_label.config(text=("🔔 정기 알람 없음")
